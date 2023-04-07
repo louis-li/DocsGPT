@@ -44,7 +44,7 @@ def call_openai_api(docs, folder_name):
     #     environment="us-east1-gcp"  # next to api key in console
     # )
     #index_name = "pandas"
-    store = FAISS.from_documents(docs_test, OpenAIEmbeddings())
+    store = FAISS.from_documents(docs_test, OpenAIEmbeddings(model=os.getenv("EMBEDDINGS_NAME")))
     #store_pine = Pinecone.from_documents(docs_test, OpenAIEmbeddings(), index_name=index_name)
 
     # Uncomment for MPNet embeddings
@@ -78,10 +78,10 @@ def get_user_permission(docs, folder_name):
     print(f"Number of Tokens = {format(tokens, ',d')}")
     print(f"Approx Cost = ${format(total_price, ',.2f')}")
     #Here we check for user permission before calling the API.
-    user_input = input("Price Okay? (Y/N) \n").lower()
-    if user_input == "y":
-        call_openai_api(docs, folder_name)
-    elif user_input == "":
-        call_openai_api(docs, folder_name)
-    else:
-        print("The API was not called. No money was spent.")
+    # user_input = input("Price Okay? (Y/N) \n").lower()
+    # if user_input == "y":
+    #     call_openai_api(docs, folder_name)
+    # elif user_input == "":
+    #     call_openai_api(docs, folder_name)
+    # else:
+    #     print("The API was not called. No money was spent.")

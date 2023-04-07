@@ -10,13 +10,14 @@ from celery import Celery
 from celery.result import AsyncResult
 from flask import Flask, request, render_template, send_from_directory, jsonify
 from langchain import FAISS
-from langchain import VectorDBQA, HuggingFaceHub, Cohere, OpenAI
+from langchain import VectorDBQA
+from langchain.llms.openai import AzureOpenAI
+
 from langchain.chains import LLMChain, ConversationalRetrievalChain
 from langchain.chains.conversational_retrieval.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.question_answering import load_qa_chain
-from langchain.chat_models import ChatOpenAI
-from langchain.embeddings import OpenAIEmbeddings, HuggingFaceHubEmbeddings, CohereEmbeddings, \
-    HuggingFaceInstructEmbeddings
+from langchain.chat_models import AzureChatOpenAI
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain.prompts.chat import (
     ChatPromptTemplate,
@@ -31,6 +32,9 @@ from worker import ingest_worker
 import celeryconfig
 
 # os.environ["LANGCHAIN_HANDLER"] = "langchain"
+
+# loading the .env file
+dotenv.load_dotenv()
 
 if os.getenv("LLM_NAME") is not None:
     llm_choice = os.getenv("LLM_NAME")
@@ -60,8 +64,6 @@ if platform.system() == "Windows":
     temp = pathlib.PosixPath
     pathlib.PosixPath = pathlib.WindowsPath
 
-# loading the .env file
-dotenv.load_dotenv()
 
 # load the prompts
 with open("prompts/combine_prompt.txt", "r") as f:
@@ -160,14 +162,9 @@ def api_answer():
         # vectorstore = "outputs/inputs/"
         # loading the index and the store and the prompt template
         # Note if you have used other embeddings than OpenAI, you need to change the embeddings
-        if embeddings_choice == "openai_text-embedding-ada-002":
-            docsearch = FAISS.load_local(vectorstore, OpenAIEmbeddings(openai_api_key=embeddings_key))
-        elif embeddings_choice == "huggingface_sentence-transformers/all-mpnet-base-v2":
-            docsearch = FAISS.load_local(vectorstore, HuggingFaceHubEmbeddings())
-        elif embeddings_choice == "huggingface_hkunlp/instructor-large":
-            docsearch = FAISS.load_local(vectorstore, HuggingFaceInstructEmbeddings())
-        elif embeddings_choice == "cohere_medium":
-            docsearch = FAISS.load_local(vectorstore, CohereEmbeddings(cohere_api_key=embeddings_key))
+
+        docsearch = FAISS.load_local(vectorstore, OpenAIEmbeddings(model=embeddings_choice))
+
 
         # create a prompt template
         if history:
@@ -184,7 +181,7 @@ def api_answer():
                                   template_format="jinja2")
         if llm_choice == "openai_chat":
             # llm = ChatOpenAI(openai_api_key=api_key, model_name="gpt-4")
-            llm = ChatOpenAI(openai_api_key=api_key)
+            llm = AzureChatOpenAI(openai_api_key=api_key)
             messages_combine = [
                 SystemMessagePromptTemplate.from_template(chat_combine_template),
                 HumanMessagePromptTemplate.from_template("{question}")
@@ -195,16 +192,7 @@ def api_answer():
                 HumanMessagePromptTemplate.from_template("{question}")
             ]
             p_chat_reduce = ChatPromptTemplate.from_messages(messages_reduce)
-        elif llm_choice == "openai":
-            llm = OpenAI(openai_api_key=api_key, temperature=0)
-        elif llm_choice == "manifest":
-            llm = ManifestWrapper(client=manifest, llm_kwargs={"temperature": 0.001, "max_tokens": 2048})
-        elif llm_choice == "huggingface":
-            llm = HuggingFaceHub(repo_id="bigscience/bloom", huggingfacehub_api_token=api_key)
-        elif llm_choice == "cohere":
-            llm = Cohere(model="command-xlarge-nightly", cohere_api_key=api_key)
 
-        if llm_choice == "openai_chat":
             question_generator = LLMChain(llm=llm, prompt=CONDENSE_QUESTION_PROMPT)
             doc_chain = load_qa_chain(llm, chain_type="map_reduce", combine_prompt=p_chat_combine)
             chain = ConversationalRetrievalChain(
@@ -216,11 +204,13 @@ def api_answer():
             #result = chain({"question": question, "chat_history": chat_history})
             # generate async with async generate method
             result = run_async_chain(chain, question, chat_history)
-        else:
+        elif llm_choice == "openai":
+            llm = AzureOpenAI(openai_api_key=api_key, temperature=0)
             qa_chain = load_qa_chain(llm=llm, chain_type="map_reduce",
                                      combine_prompt=c_prompt, question_prompt=q_prompt)
             chain = VectorDBQA(combine_documents_chain=qa_chain, vectorstore=docsearch, k=3)
             result = chain({"query": question})
+
 
         print(result)
 
@@ -274,32 +264,6 @@ def check_docs():
                 f.write(r.content)
 
         return {"status": 'loaded'}
-
-
-@app.route("/api/feedback", methods=["POST"])
-def api_feedback():
-    data = request.get_json()
-    question = data["question"]
-    answer = data["answer"]
-    feedback = data["feedback"]
-
-    print('-' * 5)
-    print("Question: " + question)
-    print("Answer: " + answer)
-    print("Feedback: " + feedback)
-    print('-' * 5)
-    response = requests.post(
-        url="https://86x89umx77.execute-api.eu-west-2.amazonaws.com/docsgpt-feedback",
-        headers={
-            "Content-Type": "application/json; charset=utf-8",
-        },
-        data=json.dumps({
-            "answer": answer,
-            "question": question,
-            "feedback": feedback
-        })
-    )
-    return {"status": 'ok'}
 
 
 @app.route('/api/combine', methods=['GET'])
