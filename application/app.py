@@ -86,7 +86,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER = "inputs"
 app.config['CELERY_BROKER_URL'] = os.getenv("CELERY_BROKER_URL")
 app.config['CELERY_RESULT_BACKEND'] = os.getenv("CELERY_RESULT_BACKEND")
 app.config['MONGO_URI'] = os.getenv("MONGO_URI")
-celery = Celery()
+# celery = Celery()
+celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'], backend=app.config['CELERY_RESULT_BACKEND'])
+celery.conf.update(app.config)
 celery.config_from_object(celeryconfig)
 mongo = MongoClient(app.config['MONGO_URI'])
 db = mongo["docsgpt"]
