@@ -11,7 +11,7 @@ from celery.result import AsyncResult
 from flask import Flask, request, render_template, send_from_directory, jsonify
 from langchain import FAISS
 from langchain import VectorDBQA
-from langchain.llms.openai import AzureOpenAI
+from langchain.llms import AzureOpenAI
 
 from langchain.chains import LLMChain, ConversationalRetrievalChain
 from langchain.chains.conversational_retrieval.prompts import CONDENSE_QUESTION_PROMPT
@@ -45,15 +45,6 @@ if os.getenv("EMBEDDINGS_NAME") is not None:
     embeddings_choice = os.getenv("EMBEDDINGS_NAME")
 else:
     embeddings_choice = "openai_text-embedding-ada-002"
-
-if llm_choice == "manifest":
-    from manifest import Manifest
-    from langchain.llms.manifest import ManifestWrapper
-
-    manifest = Manifest(
-        client_name="huggingface",
-        client_connection="http://127.0.0.1:5000"
-    )
 
 # Redirect PosixPath to WindowsPath on Windows
 import platform
@@ -134,10 +125,13 @@ def api_answer():
     question = data["question"]
     history = data["history"]
     print('-' * 5)
-    if not api_key_set:
-        api_key = data["api_key"]
-    else:
-        api_key = os.getenv("API_KEY")
+    # if not api_key_set:
+    #     api_key = data["api_key"]
+    # else:
+    api_key = os.getenv("OPENAI_API_KEY")
+    
+    api_base = os.getenv("OPENAI_API_BASE")
+
     if not embeddings_key_set:
         embeddings_key = data["embeddings_key"]
     else:
@@ -181,7 +175,11 @@ def api_answer():
                                   template_format="jinja2")
         if llm_choice == "openai_chat":
             # llm = ChatOpenAI(openai_api_key=api_key, model_name="gpt-4")
-            llm = AzureChatOpenAI(openai_api_key=api_key)
+            llm = AzureChatOpenAI(openai_api_key=api_key,
+                                  openai_api_base=api_base, 
+                                  openai_api_type=os.getenv("OPENAI_API_TYPE"),
+                                  openai_api_version=os.getenv("OPENAI_API_VERSION"),
+                                  deployment_name=os.getenv("DEPLOYMENT_NAME"))
             messages_combine = [
                 SystemMessagePromptTemplate.from_template(chat_combine_template),
                 HumanMessagePromptTemplate.from_template("{question}")
@@ -201,11 +199,13 @@ def api_answer():
                 combine_docs_chain=doc_chain,
             )
             chat_history = []
-            #result = chain({"question": question, "chat_history": chat_history})
+            result = chain({"question": question, "chat_history": chat_history})
             # generate async with async generate method
-            result = run_async_chain(chain, question, chat_history)
+            # result = run_async_chain(chain, question, chat_history)
         elif llm_choice == "openai":
-            llm = AzureOpenAI(openai_api_key=api_key, temperature=0)
+            llm = AzureOpenAI(openai_api_key=api_key, 
+                              temperature=0,
+                              deployment_name=os.getenv("DEPLOYMENT_NAME"))
             qa_chain = load_qa_chain(llm=llm, chain_type="map_reduce",
                                      combine_prompt=c_prompt, question_prompt=q_prompt)
             chain = VectorDBQA(combine_documents_chain=qa_chain, vectorstore=docsearch, k=3)

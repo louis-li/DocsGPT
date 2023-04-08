@@ -19,9 +19,9 @@
             "type": "python",
             "request": "launch",
             "program": "app.py",
-            "cwd": "/mnt/c/code/DocsGPT/application",
+            "cwd": "c:/code/DocsGPT/application",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
             
         }
     ]
