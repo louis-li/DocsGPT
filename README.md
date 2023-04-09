@@ -10,12 +10,6 @@
   <strong>DocsGPT - Azure</strong> is a modified copy of DocsGPT, which connects to Azure OpenAI endpoints for document processing. 
 </p>
 
-<div align="center">
-  
-  <a href="https://discord.gg/n5BX8dh8rU">![example1](https://img.shields.io/github/stars/arc53/docsgpt?style=social)</a>
-  
-</div>
-
 ## DocsGPT
 
 You can find our [Original DocsGPT](https://github.com/arc53/DocsFPT) here.
