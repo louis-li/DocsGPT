@@ -1,5 +1,5 @@
 <h1 align="center">
-  DocsGPT  🦖
+  DocsGPT - Azure  🦖
 </h1>
 
 <p align="center">
@@ -7,9 +7,7 @@
 </p>
 
 <p align="left">
-  <strong>DocsGPT</strong> is a cutting-edge open-source solution that streamlines the process of finding information in project documentation. With its integration of the powerful <strong>GPT</strong> models, developers can easily ask questions about a project and receive accurate answers.
-  
-Say goodbye to time-consuming manual searches, and let <strong>DocsGPT</strong> help you quickly find the information you need. Try it out and see how it revolutionizes your project documentation experience. Contribute to its development and be a part of the future of AI-powered assistance.
+  <strong>DocsGPT - Azure</strong> is a modified copy of DocsGPT, which connects to Azure OpenAI endpoints for document processing. 
 </p>
 
 <div align="center">
@@ -54,8 +52,9 @@ You can find our [Roadmap](https://github.com/orgs/arc53/projects/2) here, pleas
 
 Note: Make sure you have docker installed
 
-1. Open dowload this repository with `git clone https://github.com/arc53/DocsGPT.git`
-2. Open docker-compose.yaml and replace <your_api_key> with your OpenAI's key (there are 4 places)
+1. Open dowload this repository with `git clone https://github.com/louis-li/DocsGPT.git`
+2. in application folder, mv .env.sample .env
+3. Edit .env file and add your Azure OpenAI key and end point
 3. Run `docker-compose build && docker-compose up`
 4. Navigate to http://localhost:5173/
 
