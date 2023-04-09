@@ -160,7 +160,7 @@ export default function Navigation({
               <div className="absolute top-12 left-0 right-6 ml-2 mr-4 max-h-52 overflow-y-scroll bg-white shadow-lg">
                 {docs ? (
                   docs.map((doc, index) => {
-                    if (doc.model === 'openai_text-embedding-ada-002') {
+                    if (doc.location === 'local') {
                       return (
                         <div
                           key={index}
